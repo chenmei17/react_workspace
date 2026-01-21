@@ -176,13 +176,37 @@
         // 자동으로 UI 에 영향을 미친다. React, Vue 를 사용하는 이유 즉, UI 를 수정하는데 노력할 필요 없도록 한다. 
         function DetailForm(props) {
             function handleEdit(){
-                props.onUpdate(); // props 로 전달된 onUpdate 변수명이 update 함수를 참조중 
+                
+                // 유효성 체크 후 수정요청
+                // !! 불리언 타입으로 강제변환만 수행. 
+                /*  불리언 변환 + 값 반전
+                    !0 true
+                    !1 false
+                    !"" true
+                    !"s" false 
+
+                    !! 불리언 타입으로 강제변환
+                    !!0 false
+                    !!1 true
+                    !!"" false
+                    !!"s" true
+                    !!undefined false
+                    !!{} true -> 비어있으나 객체가 존재하기 때문에 논리값으로 변환시 true 에 해당된다. 
+                */
+                const selectedId = !! props.notice.noticeId;
+                // noticeId 에 값이 없을경우 false 반환. 
+
+                if(!selectedId){
+                    alert("수정원하는 게시물을 선택 해 주세요.");
+                }
+
                 const payload={
                     title:"수정",
                     writer:"수정자",
                     content:"내용용"
                 }
-                props.onUpdate(payload);
+                // props 로 전달된 onUpdate 변수명이 update 함수를 참조중 
+                props.onUpdate(props.notice.noticeId,payload);
             }
             function handleDelete(){
 
@@ -266,15 +290,25 @@
                 setNotice(notice);
             }
 
-            function update(payload){
+            function update(noticeId,payload){
                 console.log("부모컴포넌트 App 의 update 호출 ");
                 // 웹브라우저에서 지원하는 비동기 통신 함수 
                 // JQuery 에 의존x 
-                fetch("http://localhost:9999/api/notices/",{
+                fetch("http://localhost:9999/api/notices/"+noticeId,{
                     method:"PUT",
                     headers:{"Content-Type":"application/json"},
                     body: JSON.stringify(payload)
+                })// 서버로부터 응답이 오면 아래 then() 이 수행. 
+                .then(res => {
+                    if(!res.ok) throw new Error("수정실패");
+                    return res.json(); // 서버가 json 문자열을 전송 했다는 전제로 메서드 호출. 
                 })
+                .then(updated => {
+                    console.log("수정결과로 응답받은 데이터: ",updated);
+                })
+                .catch(err=>{
+                    console.log(err);
+                });
             }
 
             return (
