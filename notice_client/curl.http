@@ -3,9 +3,9 @@ POST http://localhost:9999/api/notices
 Content-Type: application/json
 
 {
-    "title":"연습용제목",
-    "content":"test",
-    "writer":"냠냠"
+    "title":"JPA2 연습용제목",
+    "content":"JPA2 test",
+    "writer":"JPA2 냠냠"
 }
 
 ### Delete Notice 

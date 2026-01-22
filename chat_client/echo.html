@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+</head>
+<body>
+    <!-- React 랜더링 영역 -->
+    <div id="app"></div>
+
+    <script type="text/babel">
+
+        function App(){
+
+            function connect(){
+                // 2011 년도부터 표준화 되어 브라우저 내부에 웹소켓 보유 
+                const ws = new WebSocket("ws://localhost:9991/ws/echo");
+            }
+
+            function disconnected(){
+            }
+
+
+            return(
+
+                <div id="wrapper">
+                    <h2>WebSocket Echo 클라이언트</h2>
+
+                    <div>
+                        <b>Status: </b>
+                    </div>
+
+                    <div>
+                        <button onClick={connect}>Connect</button>
+                        <button onClick={disconnected}>Disconnect</button>
+                    </div>
+
+                    <div><input type="text" name="" id="" placeholder="메세지 입력"/></div>
+
+                    <div>
+                        <h4>Recived Message</h4>
+                        <ul>
+                            <li>받은메세지</li>
+                        </ul>
+                    </div>
+                </div>
+
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById("app"));
+
+        root.render(<App/>);
+    </script>
+</body>
+</html>
