@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,32 +8,172 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        
+        h2 {
+            margin-bottom: 12px;
+        }
 
+        /* 상태 표시 */
+        #wrapper>div:first-of-type {
+            margin-bottom: 10px;
+        }
+
+        /* 버튼 영역 */
+        button {
+            padding: 6px 12px;
+            margin-right: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f8f8f8;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #eee;
+        }
+
+        /* 입력 영역 */
+        input[type="text"] {
+            padding: 6px;
+            margin-right: 6px;
+            margin-top: 6px;
+            width: 400px;
+            box-sizing: border-box;
+        }
+
+        /* 전송 영역 정렬 */
+        .send-box {
+            margin-top: 8px;
+        }
+
+        /* 메시지 리스트 */
+        ul {
+            margin-top: 10px;
+            padding-left: 18px;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        #emoji-box {
+            margin: 10px 10px 10px 0;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        #emoji-box label {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 12px;
+            padding: 4px 6px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        #emoji-box input[type="radio"] {
+            margin-right: 4px;
+            cursor: pointer;
+        }
+
+        #emoji-box label:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
 </head>
+
 <body>
     <!-- React 랜더링 영역 -->
     <div id="app"></div>
 
     <script type="text/babel">
 
-        function App(){
+        function App() {
 
-            function connect(){
+            const [status, setStatus] = React.useState("DISCONNECTED");
+            const [user, setUser] = React.useState(""); // 바인딩변수로 선언한 이유 UI 에 반영해야 하므로.
+            const [input, setInput] = React.useState(""); // 입력 텍스트박스에 들어갈 바인드 변수 
+            const [msgList, setMsgList] = React.useState([]); // 바인딩변수로 선언한 이유 UI 에 반영해야 하므로.
+
+            // 컴포넌트 내에서 렌더링과 무관하지만 컴포넌트의 생명주기동안 유지되어야 하는 값(저장공간)은 
+            // useRef 를 많이 이용한다. 
+            const wsRef = React.useRef(null);
+            // ^ wsRef 는 이 시점부터 ref 객체가 되며 실제 데이터는 
+            // current 프로퍼티에 담아야 한다. 
+
+/* connect fc - - - - */
+            function connect() {
+                // 이미 접속상태인 경우 return
+                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                    return;
+                }
+
                 // 2011 년도부터 표준화 되어 브라우저 내부에 웹소켓 보유 
                 const ws = new WebSocket("ws://localhost:9991/ws/echo");
+                wsRef.current = ws;
+                setStatus("CONNECTING");
+                // 여기 도달한다? 에러없이 접속 성공. 바인딩 변수인 status 값을 connected 로 전환하자.
+
+                // WebSocket은 통신에 필요한 이벤트 핸들러를 지원. 
+                ws.onopen = () => {
+                    // 접속이 성공되었을 때 감지하는 이벤트 핸들러를 이용한 접속 성공 처리 
+                    setStatus("CONNECTED");
+                }
+                ws.onclose = () => { // 접속 해제 감지 핸들러
+                    // 접속이 성공되었을 때 감지하는 이벤트 핸들러를 이용한 접속 성공 처리 
+                    setStatus("DISCONNECTED");
+                }
+                ws.onerror = () => {
+                    setStatus("ERROR");
+                }
+                ws.onmessage = (event) => {
+                    console.log("서버로부터 메세지 도착", event.data);
+                    setMsgList(prev => [...prev, event.data])
+                }
             }
 
-            function disconnected(){
+/* sendMessage - - - - - - - - */
+            const sendMessage = () => { //이것도 펑션으로 인정해준당.. 
+                //접속 계속 유지되어있다면, 그때만 메시지 보내자 
+                if (!wsRef.current && wsRef.current.readyState !== WebSocket.OPEN) {
+                    return;
+                }
+
+                //메시지 보낼 예정 
+                // 보낸사람, 보낼메세지, 이모티콘
+
+                let payload = {
+                    "id": user,
+                    "message": input,
+                    "icon": "",
+                    "time": ""
+                }
+
+                let data = JSON.stringify(payload);
+                wsRef.current.send(data);
+                setInput("");
             }
 
 
-            return(
+/* disconnected fc - - - - */
+            function disconnected() {
+                // [연결 종료]
+                // - 현재 소켓이 있으면 close()로 정상 종료
+                // - 실무에서는 null 체크 + 종료 후 wsRef.current 비우기도 자주 함
+                wsRef.current.close();
+            }
+
+/* return - - - - - - - - - */
+            return (
 
                 <div id="wrapper">
                     <h2>WebSocket Echo 클라이언트</h2>
 
                     <div>
-                        <b>Status: </b>
+                        <b>Status: {status}</b>
                     </div>
 
                     <div>
@@ -40,12 +181,43 @@
                         <button onClick={disconnected}>Disconnect</button>
                     </div>
 
-                    <div><input type="text" name="" id="" placeholder="메세지 입력"/></div>
+                    <div>
+                        <div>
+                            <input type="text" value={user} placeholder="사용자명" onChange={e => setUser(e.target.value)} />
+                        </div>
+                        <div>
+                            <input type="text" value={input} placeholder="메세지 입력" onChange={e => setInput(e.target.value)} />
+                        </div>
+                        <div id="emoji-box">
+                            <label>
+                                <input type="radio" name="emoji" value="😀" checked />
+                                😀
+                            </label>
+
+                            <label>
+                                <input type="radio" name="emoji" value="😂" />
+                                😂
+                            </label>
+
+                            <label>
+                                <input type="radio" name="emoji" value="😢" />
+                                😢
+                            </label>
+
+                            <label>
+                                <input type="radio" name="emoji" value="😡" />
+                                😡
+                            </label>
+                        </div>
+                        <button onClick={sendMessage}>Send</button>
+                    </div>
 
                     <div>
                         <h4>Recived Message</h4>
                         <ul>
-                            <li>받은메세지</li>
+                            {msgList.map((msg, idx) => (<li key={idx}>{msg}</li>))
+
+                            }
                         </ul>
                     </div>
                 </div>
@@ -55,7 +227,8 @@
 
         const root = ReactDOM.createRoot(document.getElementById("app"));
 
-        root.render(<App/>);
+        root.render(<App />);
     </script>
 </body>
+
 </html>
