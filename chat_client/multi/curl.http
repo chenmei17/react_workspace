@@ -1,0 +1,30 @@
+### Login 요청을 curl 명령어로 표현 
+POST http://localhost:9992/api/auth/login
+Content-Type: application/json
+
+{
+    "hompageId":"mei",
+    "password":"1234"
+}
+
+### Delete Notice 
+DELETE http://localhost:9999/api/notices/1
+Content-Type: application/json
+
+### select one 
+GET http://localhost:9999/api/notices/2
+Accept: application/json
+
+### select all 
+GET http://localhost:9999/api/notices
+Accept: application/json
+
+### edit Notice
+PUT http://localhost:9999/api/notices/2
+Content-Type: application/json
+
+{
+    "title":"수정된제목",
+    "content":"얍얍얍",
+    "writer":"냠냠만두"
+}

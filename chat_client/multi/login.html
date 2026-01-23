@@ -25,13 +25,41 @@
 
     function App(){
 
+        const [homepageId,sethomepageId] = React.useState("");
+        const [password,setPassword] = React.useState("");
+
+        
+        function login() {
+
+            const payload = {
+                homepageId:homepageId,
+                password:password
+            }
+
+            fetch("http://localhost:9992/api/auth/login",{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify(payload)
+            })
+            .then(res => {
+                if(!res.ok){throw Error("로구인 실패")}
+                return res.json();
+            })
+            .then(data => {
+                console.log("서버가 보내준 내용?",data)
+            })
+            .catch(err => console.log(err));
+
+        }
+
+
         return(
             <div className="wrapper">
                 <div className="card">
                     <h2>로그인하기</h2>
-                    <input type="text" placeholder="아이디" />
-                    <input type="text" placeholder="비밀번호" />
-                    <button>로그인</button>
+                    <input type="text" placeholder="아이디" value={homepageId} onChange={e =>sethomepageId(e.target.value)} />
+                    <input type="password" placeholder="비밀번호" value={password} onChange={e =>setPassword(e.target.value)} />
+                    <button onClick={login}>로그인</button>
 
                     <div>로그인 실패</div>
                 </div>
