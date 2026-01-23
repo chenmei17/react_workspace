@@ -38,6 +38,7 @@
 
             fetch("http://localhost:9992/api/auth/login",{
                 method:"POST",
+                credentials:"include",
                 headers:{"Content-Type":"application/json"},
                 body:JSON.stringify(payload)
             })
@@ -46,7 +47,11 @@
                 return res.json();
             })
             .then(data => {
-                console.log("서버가 보내준 내용?",data)
+                console.log("서버가 보내준 내용?",data);
+                if(data.ok){
+                            alert("로그인성공");
+                            location.href="chat.html"
+                        }
             })
             .catch(err => console.log(err));
 

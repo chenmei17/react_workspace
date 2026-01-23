@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>STOMP Room Chat - UI Only</title>
+
+  
+  <!-- React CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- SockJS + STOMP (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; background:#f6f7fb; margin:0; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 18px; }
+    .card { background:white; border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.07); padding: 16px; }
+    .row { display:flex; gap:10px; flex-wrap: wrap; align-items:center; }
+    .row > * { margin: 4px 0; }
+    input, select { padding: 10px; border-radius: 10px; border: 1px solid #d9dbe3; outline: none; }
+    button { padding: 10px 14px; border: none; border-radius: 10px; cursor:pointer; }
+    button.primary { background:#2e6cff; color:white; }
+    button.ghost { background:#eef1ff; }
+    .status { font-size: 13px; color:#555; }
+    .chatBox { height: 420px; overflow:auto; background:#0b1020; color:#e9ecff; border-radius: 14px; padding: 12px; }
+    .msg { padding: 10px; border-radius: 12px; margin: 8px 0; background: rgba(255,255,255,0.06); }
+    .meta { font-size: 12px; opacity: 0.85; margin-bottom: 4px; }
+    .text { font-size: 14px; white-space: pre-wrap; }
+    .pill { display:inline-block; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,0.14); margin-left: 6px; font-size: 12px; }
+    hr { border: 0; border-top: 1px solid #eee; margin: 14px 0; }
+    code { background: #f1f3f8; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script type="text/babel">
+    
+    function App(){
+      /* ---------------------------------
+        바인드 변수 (상태변수)
+        컴포넌트와 함께 살아가며 UI 와 후킹 되어있다.       
+      --------------------------------- */
+      const [name,setName] = React.useState("");
+      const [roomId,setRoomId] = React.useState("");
+    
+      
+      /* ---------------------------------
+        Ref 변수
+        컴포넌트와 함께살며 UI 와 상관없는 변수 
+        무언가 담을땐 객체 자체에 담는게 아니고 current property 에 담아야됨 
+      --------------------------------- */
+      const stompRef = React.useRef(null); // 저장 접속객체 
+      
+      
+      /* ---------------------------------
+      컴포넌트 랜더링 직후 사용자 정보 가져오기
+      --------------------------------- */
+      React.useEffect(() => {
+  
+        fetch("http://localhost:9992/api/auth/me",{
+          method:"GET",
+          credentials:"include"
+          // => 세션과 쿠키 구현시 ... 쿠키로 로그인 하려면? 이거 써줘야 함 
+          // 이게있어야 브라우저가 쿠키를 서버에 전송한다. 
+        })
+        .then(res=> res.json())
+        .then(data => {
+          // 우측 상단영역에 채팅을 진행할 사람의 이름을 자동출력 ~ 
+          setName(data.name);
+        })
+        .catch(err => console.log("조회실패"));
+      },[]);
+
+
+      /* ---------------------------------
+        채팅서버 접속하기 
+      --------------------------------- */
+      const connect = () => {
+        console.log("접속하겠슨니다");
+        
+        // webSocket 은 표준이긴 하나 환경에 따라 동작하지 않을수도 있기 때문에 미리 sockJS 를 사용해 보자 (효과 동일)
+        const sock = new SockJS("http://localhost:9992/ws/stomp");
+
+        const stomp = Stomp.over(sock);
+        // Stomp 는 멀티캐스팅 채팅을 구독개념으로 단순화시켜 보다쉽게 메세지 통신을 구현할수있다.
+        // stomp 는 WebSocket 이나 Sock.js 기반위에서 실행된다. 
+
+        stomp.connect({},()=>{
+          console.log("STOMP 접속 성공");
+          stompRef.current = stomp;
+        },(err =>{console.log("STOMP connect error...", err)}));
+      }
+
+      /* ---------------------------------
+        채팅 서버 접속 해제하기  
+      --------------------------------- */
+      const disconnect = () => {
+        console.log("접속해제 하겟슨니다");
+        // 접속 해제를 하게되면 구독 취소 
+
+
+        // 존재시에만 해제 
+        if(stompref.current){
+          stompRef.current.disconnect(()=>{});
+          stompRef.current = null;
+        }
+      }
+
+      /* ---------------------------------
+        방 입장
+      --------------------------------- */
+      function joinRoom(){
+        // 접속없이 방에 들어가는것을 방지. 
+        if(!stompRef.current || !stompRef.connected){
+          alert("접속 후 입장 해 주세요.");
+          return;
+        }
+
+        const rid = roomId.trim();// 혹시모를 공백 문자 제거 
+        if(!rid){
+          alert("룸 번호를 입력하세요");
+          return;
+        }
+
+        // 기존 구독 룸이 있다면 구독 해제 
+
+        // 채팅 메세지 초기화 
+
+        // 룸 참여의 의미는 stopm채팅 server 에게 이 룸을 구독하겠다는 뜻
+        stompRef.subScribe(`/topic/${rid}`,(frame) => {
+          // 데이터 전송을 위해 json 문자열로 변환 
+          const body = JSON.parse(frame.body);
+        });
+
+      }
+
+      const send = () => {
+        stompRef.current.send("/app/room/"+roomId+"/send",{},"하이욤"); // 스프링 컨트롤러에서 요청받음. URI 를 잘 맞춰보내야 한다. 
+      }
+
+
+      return(
+        <div className="wrap">
+          <div className="card">
+            <h2 style={{margin:"0 0 10px 0"}}>Step2+3 - STOMP 채팅방(Room) (UI Only)</h2>
+
+            {/* 상단 상태 + 연결 버튼 */}
+            <div className="row">
+              <div className="status">
+                <b>Status:</b> <span id="statusText">DISCONNECTED</span>
+                {/* Room 표시용 (필요 시 보이게) */}
+                <span className="pill" id="roomPill" style={{display:"none"}}>Room 1</span>
+              </div>
+
+              <div style={{flex:1}}></div>
+
+              <button className="ghost" type="button" onClick={connect}>Connect</button>
+              <button className="ghost" type="button" onClick={disconnect}>Disconnect</button>
+            </div>
+
+            <hr />
+
+            {/* 룸/닉네임/이모지 */}
+            <div className="row">
+              <input
+                id="roomId"
+                value={roomId}
+                placeholder="roomId (예: 1,2,study)"
+                onChange={e=>setRoomId(e.target.value)}
+              />
+              <button className="primary" type="button" onClick={joinRoom}>Join Room</button>
+
+              <div style={{flex:1}}></div>
+
+              <input
+                id="nickname"
+                value={name}
+                placeholder="닉네임"
+              />
+
+              <select id="emoji">
+                <option value="🙂">🙂</option>
+                <option value="😄">😄</option>
+                <option value="😎">😎</option>
+                <option value="🔥">🔥</option>
+                <option value="🎉">🎉</option>
+                <option value="✅">✅</option>
+                <option value="⚠️">⚠️</option>
+                <option value="❤️">❤️</option>
+              </select>
+            </div>
+
+            {/* 채팅 박스 */}
+            <div style={{marginTop:"14px"}} className="chatBox" id="chatBox">
+              <div style={{opacity:"0.75"}}>
+                메시지가 없습니다. Join Room 후 메시지를 보내보세요.
+              </div>
+
+              {/* 예시 메시지(디자인 확인용) */}
+              {/*
+              <div className="msg">
+                <div className="meta">
+                  <b>🙂 데브런</b>
+                  <span style={{marginLeft:"8px"}}>2026-01-23 09:10:11</span>
+                </div>
+                <div className="text">안녕하세요! 디자인만 남긴 UI입니다.</div>
+              </div>
+              */}
+            </div>
+
+            {/* 입력 + 전송 */}
+            <div className="row" style={{marginTop:"12px"}}>
+              <input
+                id="message"
+                style={{flex:1, minWidth:"260px"}}
+                value=""
+                placeholder="메시지 입력"
+              />
+              <button className="primary" type="button"onClick={send}>Send</button>
+            </div>
+
+            <div style={{marginTop:"10px", fontSize:"12px", color:"#666"}}>
+              WS 접속: <code id="wsUrl">http://host:9992/ws-stomp</code>
+              / 구독: <code>/topic/room/roomId</code>
+              / 전송: <code>/app/room/roomId/send</code>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    ReactDOM.createRoot(document.getElementById("app")).render(<App/>);
+  </script>
+</body>
+</html>
