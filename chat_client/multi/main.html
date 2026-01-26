@@ -43,6 +43,7 @@
         // ui 와 상관없이 컴포넌트와 생명을 함께하는 변수 
         const stompRef = React.useRef(null);
         const subRef = React.useRef(null);
+        const chatBoxRef = React.useRef(null); // 채팅 등록 시 스크롤 처리 
 
         // state (상태/바인드)변수는 ui와 엮인 디자인관련 요소 
         const [status,setStatus] = React.useState("DISCONNECTED"); // 현재 앱 접속상태 변수 
@@ -50,7 +51,7 @@
         const [name,setName] = React.useState(""); // 로그인 사용자명 
         const [emoji,setEmoji] = React.useState("😑"); // 이모티콘 
         const [message,setMessage] = React.useState(""); // 이모티콘 
-        const [messages,setMessages] = React.useState([1,2,3]); // 메세지 출력에 사용될 배열 
+        const [messages,setMessages] = React.useState([]); // 메세지 출력에 사용될 배열 
 
         // 컴포넌트가 화면에 render 될때 웹서버에서 사용자 정보 가져오기 
         React.useEffect(()=>{
@@ -96,9 +97,16 @@
         }
 
 // ---------- 메세지 전송
+
+        // messages 가 변경될때마다 자동으로 스크롤 처리 
+        React.useEffect(()=>{
+            if(!chatBoxRef.current)return;
+            chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+        },[messages]);
+
         const send = () => {
             // 웹소캣 연결여부 체크 
-            if(!stompRef.current||!stompRef.current.connect){
+            if(!stompRef.current||!stompRef.current.connected){
                 alert("메세지 연결을 위해 접속을 해주세요.");
                 return;
             }
@@ -122,6 +130,12 @@
 
 // ---------- 방 입장(구독 신청)
         const joinRoom = ()=>{
+            // 미접속 joinRoom 시도 방어
+            if(!stompRef.current || !stompRef.current.connected){
+                altert("먼저 접속을 해주세요");
+                return;
+            }
+
             /*
               subscribe 메서드의 인수 3종 
               1. destination(연결할 주소) // 구독 신청 시 주소와 함께 구독 구분을 위한 id 가 함께 전송 됨. 
@@ -132,6 +146,13 @@
                 alert(rid+"룸 번호 입력해.");
                 return;
             }
+
+            // 이미 구독정보가 있다면 기존 구독정보 해제
+            if(subRef.current){
+                subRef.current.unsubscribe();
+                subRef.current = null;
+            }
+
             // 추후 다른 메서드에서 구독객체 접근을 위한 subRef 
             subRef.current = stompRef.current.subscribe('/topic/room/'+rid,
                 (frame)=>{ // 서버가 전송한 메세지가 frame 으로 들어옴. 
@@ -141,6 +162,8 @@
                     // 객체로 변환해줘야 함.
                     const body = JSON.parse(frame.body);
                     console.log("메세지 내용 = ", body);
+                    // 기존 messages 배열에 body 추가한 새로운 배열을 반환. 
+                    setMessages(prev => [...prev,body]); 
                 }
             );
         }
@@ -222,23 +245,23 @@
                     </select>
                     </div>
 
-                    <div style={{ marginTop: "14px" }} className="chatBox" id="chat-box">
+                    <div style={{ marginTop: "14px" }} className="chatBox" id="chat-box" ref={chatBoxRef}>
                         {
                             messages.length === 0? (
                                 /*메시지가 없을 경우*/
                                 (<div id="empty-message" style={{ opacity: 0.75 }}>메시지가 없습니다. Join Room 후 메시지를 보내보세요.</div>)
                             ) : (
                                 /*메시지가 있을 경우*/
-                                messages.map((msg, idx)=>{
+                                messages.map((obj, idx)=>{
                                     return(
                                         <div className="msg">
                                             <div className="meta">
-                                            <b>😎 zino</b>
+                                            <b>{obj.emoji} {obj.name}</b>
                                             <span style={{ marginLeft: 8 }}>
-                                                2026-01-25 
+                                                {obj.time}
                                             </span>
                                             </div>
-                                            <div className="text">안녕하세요</div>
+                                            <div className="text">{obj.message}</div>
                                         </div>
                                     )
                                 })
@@ -255,6 +278,9 @@
                         placeholder="메시지 입력"
                         value={message}
                         onChange={e=>{setMessage(e.target.value)}}
+                        onKeyUp={e=>{
+                            if(e.key ==="Enter" && !e.repeat)send(e.target.value);
+                        }}
                     />
                     <button className="primary" id="btn-send" onClick={send}>Send</button>
                     </div>
