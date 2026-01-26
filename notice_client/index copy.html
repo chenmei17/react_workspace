@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0
+        }
+
+        .wrap {
+            width: 100%;
+            height: 800px;
+            display: flex;
+            background: #f0f0f0
+        }
+
+        .wrap>div {
+            width: 20%;
+            padding: 20px 10px;
+            box-sizing: border-box;
+            background-color: aliceblue;
+        }
+
+        .wrap form>* {
+            display: block;
+            width: 100%;
+            margin: 0 0 10px;
+            box-sizing: border-box
+        }
+
+        .wrap textarea {
+            height: 150px;
+        }
+
+        .wrap>.content {
+            width: 60%;
+            background-color: rgb(206, 216, 226);
+        }
+
+        .wrap .detail button {
+            width: 50%;
+            display: inline-block;
+        }
+
+        .wrap form .btWr {
+            display: flex;
+            gap: 5px;
+            ;
+        }
+
+        table {
+            width: 100%;
+            border: 1px solid #222;
+            border-collapse: collapse;
+            line-height: 1.25;
+            font-size: 13px;
+            background: #fafafa;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #222;
+            padding: 5px 10px;
+        }
+    </style>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <script>
+        /* React 의 2가지 개발방식
+           1. Vite 프로젝트 개발 방식 : 실제 Production 모드, 규모가 클 경우
+           2. CDN링크 방식: 학습, 연구, 테스트 목적. 규모가 작은경우
+        */
+    </script>
+
+</head>
+
+<body>
+
+    <!-- React App이 마운트될 루트 영역 -->
+    <div id="app"></div>
+
+
+
+    <script type="text/babel">
+    /* ---------------------------------------------
+        React App 시작
+        * class => className="aside"
+        * 하나짜리 dom 은 /> 으로 마감처리 필수 
+        * props ? 컴포넌트 내에 매개변수로 전달할 수 있는 데이터
+    --------------------------------------------- */
+        const root = ReactDOM.createRoot(document.getElementByid("app"));
+
+    /* ---------------------------------------------
+        게시글 등록 컴포넌트
+        - 입력값을 state 로 관리한다. Contolled Component 
+        - 등록 시 부모(App) 에 데이터를 전달함.
+        - useState("") ? 초기값 설정 
+    --------------------------------------------- */
+    function RegistForm(props){
+
+        /* ---------------------------------------------
+            입력값 상태 관리 (바인딩 변수) 
+        --------------------------------------------- */
+        const [title,setTitle] = React.useState("");
+        const [writer,setWriter] = React.useState("");
+        const [content,setContent] = React.useState("");
+
+        /*  메서드 선언 가능! 
+            서버에 요청 로직을 작성할 수 있으나 SPA 를 만들 예정이므로 
+            갖은 요청(등록, 수정, 삭제, 목록 등) 을 위해 변수, 메서드가 서로 공유되어야 한다. 
+            때문에 부모 컴포넌트에 취합해두고 가져와 사용함.
+        */
+        function handleclick(){
+            // 글 등록 요청 시 넘기게 될 notice 생성. 
+            const notice = {
+                title : title, 
+                writer : writer,
+                conetnt : content
+            };
+            props.onRetist(notice);
+
+            // 글 전달 후 입력값 초기화
+            setTitle("");
+            setWriter("");
+            setContent("");
+        }
+
+        return (
+            <div className="aside">
+                <form>
+                    <input type="text" placeholder="제목 입력" value={title} onChange={e=>setTitle(e.target.value)} />
+                    <input type="text" placeholder="작성자 입력" value={writer} onChange={e=>setWriter(e.target.writer)} />
+                    <textarea name="" id="" value={content} onChange={e.setContent(e.target.value)}></textarea>
+                    <button type="button" onClick={handleClick}>{props.bt}</button>
+                </form>
+            </div>
+        );
+    }
+
+// --- 게시물 목록 영역
+    function NoticeList(props){
+        return (
+            <div className="content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Title</th>
+                            <th>Writer</th>
+                            <th>Regdate</th>
+                            <th>Hit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {/* 
+                            map() 은 js 의 배열메서드.
+                            선언적 프로그래밍중 함수형 프로그램의 원칙 사용
+                            반복문을 스스로 수행한다. 개발자는 몇번째 반복인지 개입불가. 
+                            개발자는 그냥 어떤 업무를 원하는지 선언만 하는 프로그래밍 방식. 
+                        */}
+
+                        {props.noticeList.map((notice) => (
+                            <tr key={notice.noticeId} onClick={() => props.onSelectOne(notice)}>
+                                <td> </td>
+                                <td>{notice.title}</td>
+                                <td>{notice.writer}</td>
+                                <td>{notice.regdate}</td>
+                                <td>{notice.hit}</td>
+                            </tr>
+                        )
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+
+// --- 게시물 자세히 보기 영역 
+    function DetailFrom(props){
+        // 상태변수(바인딩변수)선언 _ 값 변동 감지되면 ui 변경 
+        const [title, setTitle] = React.useState("");
+        const [writer,setWriter] = React.useState("");
+        const [content,setContent] = React.useState("");
+
+        // 수정요청 처리 
+        // 수정요청 전 유효성 체크 후 수정요청을 처리하는것이 좋다. 
+        // noticeId 존재여부 체크 
+        const selectId = !!props.notice.noticeId; // !! : 불리언타입으로 변환 , ! : 불리언타입으로 변환 및 값 반전
+
+        React.useEffect(()=>{
+            setTitle(props.notice.title);
+            setWriter(props.notice.writer);
+            setContent(props.notice.content);
+        },[props.notice]); // 개발자가 감시하고싶은 배열을 명시. (의존성 배열)
+        // 랜더링시 실행 + 두번째 의존성 배열 변경 시 마다 실행된다. 
+        // 현재 부모 컴포넌트의 notice 를 감시하도록 둠. (클릭이벤트로 List -> App -> detail 로 전달받은 notice)
+        // 새로운 게시물 클릭 할 때 마다 App 에 전달되는 notice 변경 -> useEffect 호출됨 
+
+        function handleEdit(){
+            if (!seletedId){
+                alert("수정 원하시는 게시물을 선택 해 주세요.");
+            }
+            const payload ={
+                title:title,
+                writer:writer,
+                content:content
+            }
+            // props 로 전달된 onUpdate 변수가 update 함수를 참조(전달)중 
+            props.onUpdate(props.notice.noticeId,payload);
+        }
+        function handleDelete(){
+            if (!seletedId){
+                alert("삭제하실 글을 선택 해 주세요");
+                return;
+            }
+            props.onDelete(props.notice.noticeId);
+        }
+
+        return(
+            <div className="detail">
+                <form>
+                    <input type="text" value={title} onChange={e => setTitle(e.target.value)} />
+                    <input type="text" value={writer} onChange={e => setWriter(e.target.value)} />
+                    <textarea name="" id="" value={content} onChange={e => setContent(e.target.value)}></textarea>
+                    <div className="btWr">
+                        <button type="button" onClick={handleEdit}>수정</button>
+                        <button type="button" onClick={handleDelete} style={{ backgroundColor: "red", color: "#fff" }}>삭제</button>
+                    </div>
+                </form>
+            </div>
+        );
+    }
+
+    
+    
+// --- 최상위 App 컴포넌틑 (상태/로직 집합)
+    function App(){
+
+        // 서버에서 가져온 게시글 목록 데이터를 바인딩 변수 선언 
+        const [noticeList, setNoticeList] = React.useState([]);
+        
+        // 구조 분해 할당 ... notice를 선언하고 setNotice 로 하여금 값을 넣게 함 
+        const [notice, setNotice] = React.useState({
+            noticeId:"",
+            title:"",
+            writer:"",
+            content:"",
+            regdate:"",
+            hit:0
+        });
+
+        /* --------------------------
+            noticeList 가져오기 
+            React.useEffect()    
+            컴포넌트 랜더링 직후 실행할 업무(부수효과 Side Effect) 를 실행할 때 자주 사용되는 메서드 
+            랜더링 직후 서버 호출 or DOM 접근 ... 화면에 랜더링 직후 1회 실행되므로 효율적이다. 
+        -------------------------- */
+        React.useEffect(()=>{
+            fetch("http://localhost:9999/api/notices",{method:"GET"})
+            .then(res => res.json()) // 첫번째 then 은 서버에서 응답이 왔을 때 실행. (성공여부 모름)
+            .then(data => { // <- 첫번째 then 에서 promise resolve(성공) 하며 반환됨 
+                console.log("서버로부터 받은 데이터는? ",data);
+                setNoticeList(data);
+            })
+            .catch(err => console.log(err));
+        },[]); // [] ? React useEffect 의 의존성 배열. 빈값일때 최초실행 1회때만 실행된다. 
+
+
+        /* ---------------------------
+            서버에 비동기로 글 등록 요청
+        --------------------------- */
+        function regist(notice){
+            fetch("http://localhost:9999/api/notices",{
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body: JSON.stringfy(notice)
+            }) // 실행후 promise 발생 
+            .then(res => res.json()) // 실행후 promise 발생2 
+            .then(savedNotice => {
+                console.log("savedNotice is {}",savedNotice);
+                noticeList(prev=>[savedNotice,...prev]);
+            })
+            .catch(err => console.log(err));
+        }
+
+
+        /* ---------------------------
+            게시글 상세 보기 요청
+        --------------------------- */
+        function selectOne(notice){
+            console.log("자식 컴포넌트로부터 전달된 노티스는?", notice);
+            setNotice(notice);
+        }
+
+        /* 게시글 수정하기 */ 
+        function update(noticeId, payload){
+            // 웹브라우저에서 지원하는 비동기 통신 함수 
+            // JQuery 에 의존x 
+            fetch("http://localhost:9999/api/notices/"+noticeId, {
+                method:"PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(res=>{
+                if(!res.ok) throw new Error("수정실패");
+                return res.json(); // ok 판정 + 서버가 json 문자열 전송했다는 전제로 메서드 호출 
+            })
+            .then(updated =>{
+                console.log("수정결과로 응답받은 데이터: " ,updated);
+                // app가 보유중인 바인드변수 noticeList 의 수정된 한건만 배열에 변화를 주면 
+                // 리액트의 UI 가 이 부분을 인식하여 렌더링도 해당 부분만 수정하게 해야한다. 
+                // js의 배열메서드로 처리하면 된다. 선언적 프로그래밍 방법 중 함수형 프로그래밍 내장 되어있기 때문에 가능하다. 
+
+                
+                // 아래 화살표 함수 prev 매개변수는 기존 noticeList 가 자동으로 React 에 의해 전달됨.
+                // noticeList 에 대한 setter 이기 때문. 
+                // map은 기존 배열 요소에 접근하여 개발자가 지정한 값을 넣은 새로운 배열을 반환한다. 
+                setNoticeList(prev => prev.map(n => (n.noticeId === updated.noticeId ? updated : n)));
+            })
+            .catch(err => {
+                console.log(err);
+            });
+
+        }
+
+        // 한건 삭제
+        function deleteOne(noticeId) {
+            fetch("http://localhost:9999/api/notices/" + noticeId, { method: "DELETE" })
+            .then(res => {
+                if (!res.ok) throw new Error("삭제실패");
+                // 삭제성공 시 서버에선 대체로 204 코드(NoContent)를 보내므로 res.json() 수행 x 
+            })
+            .then(() => {
+                // 서버로부터 응답데이터가 없으므로 그냥 목록 갱신만 처리. 
+                // filter() : 배열을 순회하며 콜백이 true 한 요소만 새로운 배열에 포함시킨다. 
+                // 삭제되지 않은 요소만 골라서 새로운 배열에 넣어줌 
+                setNoticeList(prev => prev.filter(n => n.noticeId !== noticeId))
+
+                // DetailForm 이 useEffect 로 부모의 notice를 감시중이므로 DetailForm 에 든 
+                // input box 들을 직접 삭제하려 하지말고 바인딩 데이터를 제어하면 부수적으로 ui변경이 가능하다. 
+                setNotice({
+                    noticeId: "",
+                    title: "",
+                    writer: "",
+                    content: "",
+                    regdate: "",
+                    hit: 0
+                });
+            })
+            .catch(err => {
+                console.log(err)
+            });
+        }
+
+
+
+//----- render 의 경우 단일 출력의 형식을 따르기 때문에 최상위 wrap 컴포넌트를 생성하여 render 에 넘겨줘야 한다.         
+        return (
+            <div id="wrapper" className="wrap">
+                <RegistForm bt="게시하기" onRegist={regist} />
+                <NoticeList noticeList={noticeList} onSelectOne={selectOne} />
+                <DetailForm notice={notice} onUpdate={update} onDelete={deleteOne} />
+            </div>
+        )
+    }
+
+
+    
+    root.render(<App/>);
+    </script>
+
+
+
+</body>
+
+</html>
