@@ -1,0 +1,18 @@
+/* 클래스로 정의 */
+.inputStyle{
+    padding: 11px 12px;
+    border-radius: 10px;
+    border:1px solid #d0d0d0;
+    outline: none;
+    margin-right:10px
+}
+
+.primaryBtn {
+    padding: 11px;
+    border-radius: 10px;
+    border: none;
+    background: #0e71da;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 700
+}
