@@ -1,0 +1,9 @@
+### 회원가입을 curl 명령어로 표현 
+POST http://localhost:9994/api/auth
+Content-Type: application/json
+
+{
+    "homepageId":"mei",
+    "password":"1234",
+    "name":"커리헌터"
+}
