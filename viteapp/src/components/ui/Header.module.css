@@ -8,3 +8,5 @@
     gap:14px;
     justify-content: space-between;
 }
+
+.headerStyle nav{display:flex;gap:15px;}

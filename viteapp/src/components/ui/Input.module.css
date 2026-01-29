@@ -16,3 +16,16 @@
     cursor: pointer;
     font-weight: 700
 }
+
+.snsBtnWr{
+    display:flex; gap:15px;
+}
+
+.snsBtnWr button{
+    flex:1;
+    display:block;
+    padding:11px 12px;
+    border-radius: 10px;
+    border:1px solid #ddd;
+    cursor:pointer;
+}

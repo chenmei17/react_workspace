@@ -3,7 +3,7 @@ import styles from "./ui/header.module.css";
 export default function Header(){
     return(
         <header className={styles.headerStyle}>
-            <h1>My App</h1>
+            <div>My App</div>
             <nav>
                 <NavLink to="/" end>메인</NavLink>
                 <NavLink to="/signup" end>회원가입</NavLink>
